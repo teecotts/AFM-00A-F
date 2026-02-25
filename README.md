@@ -128,14 +128,25 @@ vercel env add OPENAI_API_KEY
 vercel --prod
 ```
 
-### 4. Cron Jobs
+### 4. Scheduling (External)
 
-The `vercel.json` already configures two cron jobs that run every minute:
+The pipeline endpoints are plain HTTP routes — no Vercel Cron is configured, so this deploys cleanly on the **Hobby plan**.
 
-- `GET /api/poll-drive` — Checks Drive for new files
-- `GET /api/run-worker` — Processes one pending transcription event
+To run them on a schedule, use an external scheduler to hit these URLs every 60 seconds:
 
-> **Note:** Vercel Cron requires a Pro or Enterprise plan for per-minute frequency. On the Hobby plan, the minimum is once per hour. As an alternative, use an external cron service (e.g., cron-job.org, Upstash QStash) to hit these endpoints every minute.
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/poll-drive` | Check Drive for new files |
+| `GET /api/run-worker` | Process one pending transcription event |
+| `GET /api/run-content-writer` | Dispatch transcripts to content agents |
+
+**Recommended external schedulers:**
+- [Upstash QStash](https://upstash.com/docs/qstash) (free tier, easiest)
+- [cron-job.org](https://cron-job.org) (free)
+- GitHub Actions (scheduled workflow)
+- Cloudflare Workers (cron triggers)
+
+> **Upgrading to Vercel Pro?** Re-add a `"crons"` key to `vercel.json` to use native Vercel Cron instead.
 
 ### 5. Manual Testing
 
@@ -188,7 +199,7 @@ npm test
 │   └── migrations/
 │       └── 001_create_tables.sql  # Database schema
 ├── .env.example
-├── vercel.json                # Cron + function config
+├── vercel.json                # Serverless function config
 ├── tsconfig.json
 └── package.json
 ```

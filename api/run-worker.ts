@@ -1,7 +1,7 @@
 /**
  * Vercel API Route: GET /api/run-worker
  * Processes one pending transcription event.
- * Designed to be called by Vercel Cron every 60 seconds.
+ * Triggerable via HTTP GET/POST. Schedule externally (Upstash, GitHub Actions, etc.).
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { processNextEvent } from "../src/jobs/transcribeWorker";

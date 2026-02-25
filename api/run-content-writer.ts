@@ -1,7 +1,7 @@
 /**
  * Vercel API Route: GET /api/run-content-writer
  * Dispatches transcript.ready events to Agent 00C and 00D in parallel.
- * Designed to be called by Vercel Cron every 60 seconds.
+ * Triggerable via HTTP GET/POST. Schedule externally (Upstash, GitHub Actions, etc.).
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { processContentEvents } from "../src/jobs/contentWriter";

@@ -1,27 +1,13 @@
 {
-  "crons": [
-    {
-      "path": "/api/poll-drive",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/run-worker",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/run-content-writer",
-      "schedule": "* * * * *"
-    }
-  ],
   "functions": {
     "api/poll-drive.ts": {
       "maxDuration": 30
     },
     "api/run-worker.ts": {
-      "maxDuration": 120
+      "maxDuration": 60
     },
     "api/run-content-writer.ts": {
-      "maxDuration": 120
+      "maxDuration": 60
     },
     "api/review.ts": {
       "maxDuration": 10

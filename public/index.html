@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent 00A — Content Factory</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 80px auto; padding: 0 24px; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; }
+    .sub { color: #666; font-size: 0.9rem; margin-bottom: 32px; }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 10px 0; border-bottom: 1px solid #eee; }
+    li:last-child { border-bottom: none; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>Agent 00A</h1>
+  <p class="sub">Content Factory — Drive Polling + Whisper Transcription Pipeline</p>
+  <ul>
+    <li><a href="/api/poll-drive"><code>GET /api/poll-drive</code></a> — Poll Google Drive</li>
+    <li><a href="/api/run-worker"><code>GET /api/run-worker</code></a> — Process transcription event</li>
+    <li><a href="/api/run-content-writer"><code>GET /api/run-content-writer</code></a> — Dispatch to content agents</li>
+    <li><a href="/api/review"><code>GET /api/review</code></a> — Review API (draft items)</li>
+    <li><a href="/review.html">Review Dashboard</a> — Approve / reject content</li>
+  </ul>
+</body>
+</html>

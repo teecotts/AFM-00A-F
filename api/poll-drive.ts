@@ -1,7 +1,7 @@
 /**
  * Vercel API Route: GET /api/poll-drive
  * Runs one poll iteration against Google Drive.
- * Designed to be called by Vercel Cron every 60 seconds.
+ * Triggerable via HTTP GET/POST. Schedule externally (Upstash, GitHub Actions, etc.).
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { pollDrive } from "../src/jobs/pollDrive";
@@ -11,7 +11,6 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Only allow GET (for cron) and POST
   if (req.method !== "GET" && req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
