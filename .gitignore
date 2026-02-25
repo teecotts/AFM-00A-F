@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.log
+credentials/
+tmp/
+.vercel
+test_output/
+
+.vercel

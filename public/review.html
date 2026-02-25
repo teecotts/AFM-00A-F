@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Review Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 24px; max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .subtitle { color: #666; font-size: 0.875rem; margin-bottom: 24px; }
+    .controls { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; }
+    .controls select, .controls button { padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.875rem; background: #fff; cursor: pointer; }
+    .controls button { background: #1a1a1a; color: #fff; border: none; }
+    .controls button:hover { background: #333; }
+    .controls button:disabled { background: #999; cursor: not-allowed; }
+    .stats { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px; min-width: 120px; }
+    .stat-card .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-card .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+    .group { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+    .group-header { padding: 16px 20px; background: #fafafa; border-bottom: 1px solid #e0e0e0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .group-header:hover { background: #f0f0f0; }
+    .group-header h2 { font-size: 1rem; font-weight: 600; }
+    .group-header .count { font-size: 0.8rem; color: #888; }
+    .group-header .arrow { transition: transform 0.2s; font-size: 0.8rem; }
+    .group-header.open .arrow { transform: rotate(90deg); }
+    .group-body { display: none; }
+    .group-body.open { display: block; }
+    .bulk-bar { padding: 12px 20px; background: #f9f9f9; border-bottom: 1px solid #eee; display: flex; gap: 8px; align-items: center; }
+    .bulk-bar button { padding: 6px 14px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.8rem; cursor: pointer; background: #fff; }
+    .bulk-bar button.approve { background: #e6f4ea; color: #137333; border-color: #a8dab5; }
+    .bulk-bar button.approve:hover { background: #ceead6; }
+    .item { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
+    .item:last-child { border-bottom: none; }
+    .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .item-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .badge.draft { background: #fff3cd; color: #856404; }
+    .badge.approved { background: #d4edda; color: #155724; }
+    .badge.needs_revision { background: #f8d7da; color: #721c24; }
+    .badge.rejected { background: #e2e3e5; color: #383d41; }
+    .badge.scheduled { background: #cce5ff; color: #004085; }
+    .badge.published { background: #d4edda; color: #155724; }
+    .badge.type { background: #e8eaf6; color: #283593; }
+    .badge.platform { background: #e0f2f1; color: #00695c; }
+    .badge.agent { background: #fce4ec; color: #880e4f; }
+    .preview { background: #f9f9f9; border: 1px solid #eee; border-radius: 4px; padding: 12px; font-size: 0.85rem; line-height: 1.5; max-height: 120px; overflow: hidden; white-space: pre-wrap; word-break: break-word; color: #444; margin-bottom: 10px; }
+    .item-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .item-actions button { padding: 6px 14px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.8rem; cursor: pointer; background: #fff; }
+    .item-actions button.approve { background: #e6f4ea; color: #137333; border-color: #a8dab5; }
+    .item-actions button.approve:hover { background: #ceead6; }
+    .item-actions button.revision { background: #fff8e1; color: #f57f17; border-color: #ffe082; }
+    .item-actions button.revision:hover { background: #fff3c4; }
+    .item-actions button.reject { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
+    .item-actions button.reject:hover { background: #f8bbd0; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 8px; padding: 24px; max-width: 500px; width: 90%; }
+    .modal h3 { margin-bottom: 12px; }
+    .modal textarea { width: 100%; height: 100px; border: 1px solid #ddd; border-radius: 4px; padding: 10px; font-size: 0.9rem; resize: vertical; font-family: inherit; }
+    .modal .actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+    .modal .actions button { padding: 8px 20px; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; font-size: 0.875rem; }
+    .modal .actions .submit { background: #f57f17; color: #fff; border: none; }
+    .loading { text-align: center; padding: 48px; color: #888; }
+    .empty { text-align: center; padding: 48px; color: #888; }
+    .error { background: #fce4ec; color: #c62828; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; }
+    .review-note { background: #fff3cd; border-left: 3px solid #ffc107; padding: 8px 12px; margin-bottom: 10px; font-size: 0.8rem; color: #856404; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 12px 20px; border-radius: 6px; font-size: 0.875rem; z-index: 200; display: none; }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Content Review Dashboard</h1>
+  <p class="subtitle">Review, approve, or request revisions on draft content</p>
+
+  <div class="controls">
+    <select id="statusFilter">
+      <option value="draft" selected>Draft</option>
+      <option value="needs_revision">Needs Revision</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+      <option value="scheduled">Scheduled</option>
+      <option value="published">Published</option>
+    </select>
+    <button onclick="loadReview()">Refresh</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div id="content"></div>
+
+  <!-- Revision note modal -->
+  <div class="modal-overlay" id="revisionModal">
+    <div class="modal">
+      <h3>Request Revision</h3>
+      <p style="margin-bottom:12px;color:#666;font-size:0.875rem;">Provide feedback for the content creator:</p>
+      <textarea id="revisionNote" placeholder="What needs to change?"></textarea>
+      <div class="actions">
+        <button onclick="closeModal()">Cancel</button>
+        <button class="submit" onclick="submitRevision()">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let currentGroups = [];
+    let pendingRevision = null; // { table, id }
+
+    async function loadReview() {
+      const status = document.getElementById('statusFilter').value;
+      const contentEl = document.getElementById('content');
+      const statsEl = document.getElementById('stats');
+      contentEl.innerHTML = '<div class="loading">Loading...</div>';
+      statsEl.innerHTML = '';
+
+      try {
+        const resp = await fetch(`/api/review?status=${status}`);
+        const data = await resp.json();
+
+        if (!data.ok) {
+          contentEl.innerHTML = `<div class="error">${data.error}</div>`;
+          return;
+        }
+
+        currentGroups = data.groups || [];
+        renderStats(currentGroups);
+        renderGroups(currentGroups);
+      } catch (err) {
+        contentEl.innerHTML = `<div class="error">Failed to load: ${err.message}</div>`;
+      }
+    }
+
+    function renderStats(groups) {
+      const totalContent = groups.reduce((s, g) => s + g.content_items.length, 0);
+      const totalMedia = groups.reduce((s, g) => s + g.media_items.length, 0);
+      const statsEl = document.getElementById('stats');
+      statsEl.innerHTML = `
+        <div class="stat-card"><div class="label">Transcripts</div><div class="value">${groups.length}</div></div>
+        <div class="stat-card"><div class="label">Content Items</div><div class="value">${totalContent}</div></div>
+        <div class="stat-card"><div class="label">Media Items</div><div class="value">${totalMedia}</div></div>
+        <div class="stat-card"><div class="label">Total</div><div class="value">${totalContent + totalMedia}</div></div>
+      `;
+    }
+
+    function renderGroups(groups) {
+      const contentEl = document.getElementById('content');
+      if (groups.length === 0) {
+        contentEl.innerHTML = '<div class="empty">No items found for this status.</div>';
+        return;
+      }
+
+      contentEl.innerHTML = groups.map((g, gi) => {
+        const fileName = g.transcript_meta.file_name || g.transcript_meta.file_id || 'Unknown';
+        const totalItems = g.content_items.length + g.media_items.length;
+        const date = new Date(g.transcript_meta.created_at).toLocaleDateString();
+
+        const contentItemsHtml = g.content_items.map(item => renderItem(item, 'content_queue')).join('');
+        const mediaItemsHtml = g.media_items.map(item => renderMediaItem(item, 'media_assets')).join('');
+
+        const status = document.getElementById('statusFilter').value;
+        const bulkBar = (status === 'draft' || status === 'needs_revision') ? `
+          <div class="bulk-bar">
+            <span style="font-size:0.8rem;color:#666;">Bulk actions:</span>
+            <button class="approve" onclick="bulkApprove('content_queue','${g.transcript_id}')">Approve all content</button>
+            <button class="approve" onclick="bulkApprove('media_assets','${g.transcript_id}')">Approve all media</button>
+          </div>
+        ` : '';
+
+        return `
+          <div class="group">
+            <div class="group-header${gi === 0 ? ' open' : ''}" onclick="toggleGroup(this)">
+              <div>
+                <h2>${esc(fileName)}</h2>
+                <span class="count">${totalItems} item${totalItems !== 1 ? 's' : ''} &middot; ${date}</span>
+              </div>
+              <span class="arrow">&#9654;</span>
+            </div>
+            <div class="group-body${gi === 0 ? ' open' : ''}">
+              ${bulkBar}
+              ${contentItemsHtml}
+              ${mediaItemsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderItem(item, table) {
+      const preview = (item.content || '').substring(0, 300);
+      const noteHtml = item.review_note ? `<div class="review-note"><strong>Reviewer note:</strong> ${esc(item.review_note)}</div>` : '';
+      return `
+        <div class="item" id="item-${item.id}">
+          <div class="item-header">
+            <div class="item-meta">
+              <span class="badge type">${esc(item.type)}</span>
+              <span class="badge platform">${esc(item.platform)}</span>
+              <span class="badge agent">${esc(item.agent_id)}</span>
+              <span class="badge ${item.status}">${esc(item.status)}</span>
+            </div>
+          </div>
+          ${noteHtml}
+          <div class="preview">${esc(preview)}${item.content && item.content.length > 300 ? '...' : ''}</div>
+          ${renderActions(table, item.id, item.status)}
+        </div>
+      `;
+    }
+
+    function renderMediaItem(item, table) {
+      const contentStr = JSON.stringify(item.content, null, 2).substring(0, 300);
+      const noteHtml = item.review_note ? `<div class="review-note"><strong>Reviewer note:</strong> ${esc(item.review_note)}</div>` : '';
+      return `
+        <div class="item" id="item-${item.id}">
+          <div class="item-header">
+            <div class="item-meta">
+              <span class="badge type">${esc(item.type)}</span>
+              <span class="badge agent">${esc(item.agent_id)}</span>
+              <span class="badge ${item.status}">${esc(item.status)}</span>
+            </div>
+          </div>
+          ${noteHtml}
+          <div class="preview">${esc(contentStr)}${contentStr.length >= 300 ? '...' : ''}</div>
+          ${renderActions(table, item.id, item.status)}
+        </div>
+      `;
+    }
+
+    function renderActions(table, id, status) {
+      if (status !== 'draft' && status !== 'needs_revision') return '';
+      return `
+        <div class="item-actions">
+          <button class="approve" onclick="updateStatus('${table}','${id}','approved')">Approve</button>
+          <button class="revision" onclick="openRevisionModal('${table}','${id}')">Request Revision</button>
+          <button class="reject" onclick="updateStatus('${table}','${id}','rejected')">Reject</button>
+        </div>
+      `;
+    }
+
+    async function updateStatus(table, id, status, note) {
+      try {
+        const body = { table, id, status };
+        if (note) body.note = note;
+
+        const resp = await fetch('/api/review/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+          showToast(`Error: ${data.error}`);
+          return;
+        }
+
+        showToast(`Updated to ${status}`);
+        loadReview();
+      } catch (err) {
+        showToast(`Failed: ${err.message}`);
+      }
+    }
+
+    async function bulkApprove(table, transcriptId) {
+      try {
+        const resp = await fetch('/api/review/bulk-approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ table, transcript_id: transcriptId }),
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+          showToast(`Error: ${data.error}`);
+          return;
+        }
+
+        showToast(`Approved ${data.approved_count} item(s)`);
+        loadReview();
+      } catch (err) {
+        showToast(`Failed: ${err.message}`);
+      }
+    }
+
+    function openRevisionModal(table, id) {
+      pendingRevision = { table, id };
+      document.getElementById('revisionNote').value = '';
+      document.getElementById('revisionModal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('revisionModal').classList.remove('open');
+      pendingRevision = null;
+    }
+
+    function submitRevision() {
+      if (!pendingRevision) return;
+      const note = document.getElementById('revisionNote').value.trim();
+      if (!note) {
+        showToast('Please enter a revision note');
+        return;
+      }
+      updateStatus(pendingRevision.table, pendingRevision.id, 'needs_revision', note);
+      closeModal();
+    }
+
+    function toggleGroup(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    function esc(s) {
+      const div = document.createElement('div');
+      div.textContent = String(s || '');
+      return div.innerHTML;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Load on page ready
+    loadReview();
+  </script>
+</body>
+</html>

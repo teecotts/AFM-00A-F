@@ -1,0 +1,45 @@
+{
+  "name": "agent-00a",
+  "version": "1.0.0",
+  "description": "Content Factory - Drive polling + Whisper transcription pipeline",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev:poller": "tsx src/scripts/runPoller.ts",
+    "dev:worker": "tsx src/scripts/runWorker.ts",
+    "dev:content-writer": "tsx src/scripts/runContentWriter.ts",
+    "dev:00b": "tsx src/scripts/run_00b.ts",
+    "dev:00c": "tsx src/scripts/run_00c.ts",
+    "dev:00d": "tsx src/scripts/run_00d.ts",
+    "dev:00f": "tsx src/scripts/run_00f.ts",
+    "dev:enqueue": "tsx src/scripts/enqueueTestEvent.ts",
+    "dev:00A": "tsx agents/00A/worker.ts",
+    "start:poller": "node dist/scripts/runPoller.js",
+    "start:worker": "node dist/scripts/runWorker.js",
+    "start:content-writer": "node dist/scripts/runContentWriter.js",
+    "pipeline": "tsx src/scripts/run_pipeline.ts",
+    "test": "tsx src/tests/run.ts",
+    "test:agents": "tsx src/scripts/test_agents_local.ts",
+    "test:pipeline": "tsx src/scripts/test_full_pipeline_local.ts",
+    "test:smoke": "tsx src/scripts/smoke_full_pipeline.ts",
+    "typecheck": "tsc --noEmit",
+    "db:verify": "tsx src/scripts/verify_schema_contract.ts",
+    "db:reset": "tsx src/scripts/reset_db.ts --force",
+    "review:stats": "tsx src/scripts/reviewStats.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@vercel/node": "^5.6.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.96.0",
+    "dotenv": "^17.3.1",
+    "googleapis": "^171.4.0",
+    "openai": "^6.22.0"
+  }
+}
