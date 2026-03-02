@@ -17,6 +17,9 @@
     },
     "api/review/bulk-approve.ts": {
       "maxDuration": 10
+    },
+    "api/pipeline.ts": {
+      "maxDuration": 10
     }
   }
 }

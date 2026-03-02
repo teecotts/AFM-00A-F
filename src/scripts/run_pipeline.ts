@@ -190,8 +190,8 @@ async function main() {
     tmpPath = await downloadFile(payload.file_id, payload.file_name);
     console.log(`  ✓ Downloaded to ${tmpPath}`);
 
-    // Transcribe
-    console.log(`  ⏳ Transcribing with Whisper...`);
+    // Transcribe (extractAudio handles video→mp3 conversion internally)
+    console.log(`  ⏳ Extracting audio & transcribing with Whisper...`);
     const transcriptText = await transcribeFile(tmpPath);
     console.log(`  ✓ Transcribed (${transcriptText.length} chars)`);
 

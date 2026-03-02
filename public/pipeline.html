@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 24px; max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 4px; }
+    .subtitle { color: #666; font-size: 0.875rem; margin-bottom: 24px; }
+    .controls { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; }
+    .controls button { padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.875rem; background: #1a1a1a; color: #fff; cursor: pointer; border: none; }
+    .controls button:hover { background: #333; }
+    .controls select { padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.875rem; background: #fff; cursor: pointer; }
+
+    /* Stat cards */
+    .stats { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px; min-width: 130px; }
+    .stat-card .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-card .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+    .stat-card .value.green { color: #137333; }
+    .stat-card .value.red { color: #c62828; }
+    .stat-card .value.amber { color: #f57f17; }
+
+    /* Run card */
+    .run { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+    .run-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
+    .run-header:hover { background: #fafafa; }
+    .run-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; word-break: break-all; }
+    .run-meta { font-size: 0.8rem; color: #888; display: flex; gap: 12px; flex-wrap: wrap; }
+    .run-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; margin-left: 16px; }
+    .run-arrow { transition: transform 0.2s; font-size: 0.8rem; color: #888; }
+    .run-header.open .run-arrow { transform: rotate(90deg); }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; }
+    .badge.completed { background: #d4edda; color: #155724; }
+    .badge.pending { background: #fff3cd; color: #856404; }
+    .badge.processing { background: #cce5ff; color: #004085; }
+    .badge.failed { background: #f8d7da; color: #721c24; }
+    .badge.draft { background: #fff3cd; color: #856404; }
+    .badge.approved { background: #d4edda; color: #155724; }
+    .badge.needs_revision { background: #f8d7da; color: #721c24; }
+    .badge.rejected { background: #e2e3e5; color: #383d41; }
+    .badge.agent { background: #e8eaf6; color: #283593; }
+    .badge.type { background: #e0f2f1; color: #00695c; }
+    .badge.platform { background: #fce4ec; color: #880e4f; }
+
+    /* Run body */
+    .run-body { display: none; border-top: 1px solid #e0e0e0; }
+    .run-body.open { display: block; }
+
+    /* Sections within a run */
+    .run-section { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
+    .run-section:last-child { border-bottom: none; }
+    .run-section h3 { font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    /* Agent grid */
+    .agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .agent-card { background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 12px; }
+    .agent-card .agent-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; }
+    .agent-card .agent-detail { font-size: 0.8rem; color: #666; line-height: 1.5; }
+
+    /* Content items */
+    .content-item { background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+    .content-item:last-child { margin-bottom: 0; }
+    .content-item-header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+    .content-preview { font-size: 0.82rem; color: #444; line-height: 1.5; max-height: 80px; overflow: hidden; white-space: pre-wrap; word-break: break-word; background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 8px; }
+
+    /* Transcript */
+    .transcript-preview { font-size: 0.82rem; color: #444; line-height: 1.5; max-height: 120px; overflow: hidden; white-space: pre-wrap; word-break: break-word; background: #fff; border: 1px solid #eee; border-radius: 4px; padding: 10px; }
+
+    /* Error */
+    .error-box { background: #fce4ec; color: #c62828; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-top: 8px; }
+    .error { background: #fce4ec; color: #c62828; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; }
+    .loading { text-align: center; padding: 48px; color: #888; }
+    .empty { text-align: center; padding: 48px; color: #888; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 2px; margin-bottom: 12px; }
+    .tab { padding: 6px 16px; border-radius: 4px 4px 0 0; font-size: 0.8rem; cursor: pointer; background: #eee; color: #666; border: 1px solid #ddd; border-bottom: none; }
+    .tab.active { background: #fff; color: #1a1a1a; font-weight: 600; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Status breakdown bar */
+    .status-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+    .status-bar .seg { height: 100%; }
+    .status-bar .seg.draft { background: #ffc107; }
+    .status-bar .seg.approved { background: #28a745; }
+    .status-bar .seg.needs_revision { background: #dc3545; }
+    .status-bar .seg.rejected { background: #6c757d; }
+    .status-bar .seg.scheduled { background: #007bff; }
+    .status-bar .seg.published { background: #28a745; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 12px 20px; border-radius: 6px; font-size: 0.875rem; z-index: 200; display: none; }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Pipeline Dashboard</h1>
+  <p class="subtitle">Muggles Content Factory &mdash; Pipeline run history &amp; outputs</p>
+
+  <div class="controls">
+    <select id="limitSelect">
+      <option value="5">Last 5 runs</option>
+      <option value="10" selected>Last 10 runs</option>
+      <option value="25">Last 25 runs</option>
+    </select>
+    <button onclick="loadPipeline()">Refresh</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div id="content"></div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let runs = [];
+
+    async function loadPipeline() {
+      const limit = document.getElementById('limitSelect').value;
+      const contentEl = document.getElementById('content');
+      const statsEl = document.getElementById('stats');
+      contentEl.innerHTML = '<div class="loading">Loading pipeline runs...</div>';
+      statsEl.innerHTML = '';
+
+      try {
+        const resp = await fetch(`/api/pipeline?limit=${limit}`);
+        const data = await resp.json();
+
+        if (!data.ok) {
+          contentEl.innerHTML = `<div class="error">${esc(data.error)}</div>`;
+          return;
+        }
+
+        runs = data.runs || [];
+        renderStats(runs);
+        renderRuns(runs);
+      } catch (err) {
+        contentEl.innerHTML = `<div class="error">Failed to load: ${esc(err.message)}</div>`;
+      }
+    }
+
+    function renderStats(runs) {
+      const total = runs.length;
+      const completed = runs.filter(r => r.event_status === 'completed').length;
+      const failed = runs.filter(r => r.event_status === 'failed').length;
+      const inProgress = runs.filter(r => r.event_status === 'pending' || r.event_status === 'processing').length;
+      const totalItems = runs.reduce((s, r) => s + r.summary.total_items, 0);
+      const totalContent = runs.reduce((s, r) => s + r.summary.content_count, 0);
+      const totalMedia = runs.reduce((s, r) => s + r.summary.media_count, 0);
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card"><div class="label">Pipeline Runs</div><div class="value">${total}</div></div>
+        <div class="stat-card"><div class="label">Completed</div><div class="value green">${completed}</div></div>
+        <div class="stat-card"><div class="label">Failed</div><div class="value${failed > 0 ? ' red' : ''}">${failed}</div></div>
+        <div class="stat-card"><div class="label">In Progress</div><div class="value${inProgress > 0 ? ' amber' : ''}">${inProgress}</div></div>
+        <div class="stat-card"><div class="label">Content Items</div><div class="value">${totalContent}</div></div>
+        <div class="stat-card"><div class="label">Media Assets</div><div class="value">${totalMedia}</div></div>
+      `;
+    }
+
+    function renderRuns(runs) {
+      const contentEl = document.getElementById('content');
+      if (runs.length === 0) {
+        contentEl.innerHTML = '<div class="empty">No pipeline runs found.</div>';
+        return;
+      }
+
+      contentEl.innerHTML = runs.map((run, i) => {
+        const fileName = run.file.name || run.file.id || 'Unknown';
+        const date = new Date(run.created_at).toLocaleString();
+        const hasTranscript = !!run.transcript;
+
+        return `
+          <div class="run">
+            <div class="run-header${i === 0 ? ' open' : ''}" onclick="toggleRun(this)">
+              <div>
+                <div class="run-title">${esc(fileName)}</div>
+                <div class="run-meta">
+                  <span>${date}</span>
+                  <span>${run.summary.total_items} item${run.summary.total_items !== 1 ? 's' : ''}</span>
+                  ${hasTranscript ? `<span>${formatChars(run.transcript.char_count)} transcript</span>` : ''}
+                  <span>Attempt ${run.attempt_count}</span>
+                </div>
+                ${run.summary.total_items > 0 ? renderStatusBar(run.summary.status_breakdown, run.summary.total_items) : ''}
+              </div>
+              <div class="run-right">
+                <span class="badge ${run.event_status}">${esc(run.event_status)}</span>
+                <span class="run-arrow">&#9654;</span>
+              </div>
+            </div>
+            <div class="run-body${i === 0 ? ' open' : ''}" id="run-${i}">
+              ${renderRunBody(run, i)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStatusBar(breakdown, total) {
+      if (total === 0) return '';
+      const segments = Object.entries(breakdown).map(([status, count]) => {
+        const pct = (count / total) * 100;
+        return `<div class="seg ${status}" style="width:${pct}%" title="${status}: ${count}"></div>`;
+      }).join('');
+      return `<div class="status-bar">${segments}</div>`;
+    }
+
+    function renderRunBody(run, index) {
+      let html = '';
+
+      // Error section
+      if (run.event_error) {
+        html += `<div class="run-section"><div class="error-box"><strong>Error:</strong> ${esc(run.event_error)}</div></div>`;
+      }
+
+      // Tabs
+      const tabs = [];
+      tabs.push({ id: 'overview', label: 'Overview' });
+      if (run.transcript) tabs.push({ id: 'transcript', label: 'Transcript' });
+      if (run.content_items.length > 0) tabs.push({ id: 'content', label: `Content (${run.content_items.length})` });
+      if (run.media_items.length > 0) tabs.push({ id: 'media', label: `Media (${run.media_items.length})` });
+
+      html += `<div class="run-section">`;
+      html += `<div class="tabs">${tabs.map(t =>
+        `<div class="tab${t.id === 'overview' ? ' active' : ''}" onclick="switchTab(this, '${index}', '${t.id}')">${t.label}</div>`
+      ).join('')}</div>`;
+
+      // Overview panel
+      html += `<div class="tab-panel active" id="tab-${index}-overview">`;
+      html += renderOverview(run);
+      html += `</div>`;
+
+      // Transcript panel
+      if (run.transcript) {
+        const preview = findTranscriptPreview(run);
+        html += `<div class="tab-panel" id="tab-${index}-transcript">`;
+        html += `<p style="font-size:0.8rem;color:#888;margin-bottom:8px;">${formatChars(run.transcript.char_count)} characters &middot; Created ${new Date(run.transcript.created_at).toLocaleString()}</p>`;
+        html += `<div class="transcript-preview">${esc(preview)}</div>`;
+        html += `</div>`;
+      }
+
+      // Content panel
+      if (run.content_items.length > 0) {
+        html += `<div class="tab-panel" id="tab-${index}-content">`;
+        html += run.content_items.map(item => renderContentItem(item)).join('');
+        html += `</div>`;
+      }
+
+      // Media panel
+      if (run.media_items.length > 0) {
+        html += `<div class="tab-panel" id="tab-${index}-media">`;
+        html += run.media_items.map(item => renderMediaItem(item)).join('');
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    function renderOverview(run) {
+      let html = '<div class="agent-grid">';
+
+      // File info card
+      html += `
+        <div class="agent-card">
+          <div class="agent-name">Source File</div>
+          <div class="agent-detail">
+            ${esc(run.file.name)}<br>
+            ${run.file.size ? `Size: ${formatBytes(run.file.size)}` : 'Size: unknown'}<br>
+            Status: <span class="badge ${run.event_status}">${esc(run.event_status)}</span>
+          </div>
+        </div>
+      `;
+
+      // Transcript card
+      if (run.transcript) {
+        html += `
+          <div class="agent-card">
+            <div class="agent-name">Transcript</div>
+            <div class="agent-detail">
+              ${formatChars(run.transcript.char_count)} characters<br>
+              ID: ${esc(run.transcript.id.substring(0, 8))}...
+            </div>
+          </div>
+        `;
+      }
+
+      // Agent cards
+      const agents = run.summary.agents;
+      for (const [agentId, info] of Object.entries(agents)) {
+        html += `
+          <div class="agent-card">
+            <div class="agent-name">${esc(agentLabel(agentId))}</div>
+            <div class="agent-detail">
+              ${info.items} item${info.items !== 1 ? 's' : ''}<br>
+              Types: ${info.types.map(t => esc(t)).join(', ')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Status breakdown card
+      if (Object.keys(run.summary.status_breakdown).length > 0) {
+        html += `
+          <div class="agent-card">
+            <div class="agent-name">Status Breakdown</div>
+            <div class="agent-detail">
+              ${Object.entries(run.summary.status_breakdown).map(([s, c]) =>
+                `<span class="badge ${s}">${esc(s)}</span> ${c}`
+              ).join('<br>')}
+            </div>
+          </div>
+        `;
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    function renderContentItem(item) {
+      const preview = (item.content || '').substring(0, 400);
+      return `
+        <div class="content-item">
+          <div class="content-item-header">
+            <span class="badge type">${esc(item.type)}</span>
+            <span class="badge platform">${esc(item.platform)}</span>
+            <span class="badge agent">${esc(item.agent_id)}</span>
+            <span class="badge ${item.status}">${esc(item.status)}</span>
+          </div>
+          <div class="content-preview">${esc(preview)}${item.content && item.content.length > 400 ? '...' : ''}</div>
+        </div>
+      `;
+    }
+
+    function renderMediaItem(item) {
+      const contentStr = typeof item.content === 'string'
+        ? item.content.substring(0, 400)
+        : JSON.stringify(item.content, null, 2).substring(0, 400);
+      return `
+        <div class="content-item">
+          <div class="content-item-header">
+            <span class="badge type">${esc(item.type)}</span>
+            <span class="badge agent">${esc(item.agent_id)}</span>
+            <span class="badge ${item.status}">${esc(item.status)}</span>
+          </div>
+          <div class="content-preview">${esc(contentStr)}${contentStr.length >= 400 ? '...' : ''}</div>
+        </div>
+      `;
+    }
+
+    function findTranscriptPreview(run) {
+      // We have char_count but need actual text — it's in the API response
+      // The API returns full content_items with text, but transcript text
+      // is not included in the summary. Show first content item as proxy,
+      // or indicate transcript was processed.
+      // Actually the API does not return transcript text to keep payloads small.
+      return '(Transcript text available in database — ' + formatChars(run.transcript.char_count) + ' characters transcribed)';
+    }
+
+    function switchTab(tabEl, runIndex, tabId) {
+      // Deactivate siblings
+      const parent = tabEl.parentElement;
+      parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tabEl.classList.add('active');
+
+      // Toggle panels
+      const section = parent.parentElement;
+      section.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      const panel = section.querySelector(`#tab-${runIndex}-${tabId}`);
+      if (panel) panel.classList.add('active');
+    }
+
+    function toggleRun(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    function agentLabel(id) {
+      const map = {
+        'agent_00A': '00A Poller',
+        'agent_00B': '00B Video',
+        'agent_00C': '00C Writer',
+        'agent_00D': '00D Skool',
+        'agent_00F': '00F Graphics',
+      };
+      return map[id] || id;
+    }
+
+    function formatChars(n) {
+      if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+      return String(n);
+    }
+
+    function formatBytes(bytes) {
+      const n = parseInt(bytes);
+      if (isNaN(n)) return bytes;
+      if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+      if (n >= 1024) return (n / 1024).toFixed(1) + ' KB';
+      return n + ' B';
+    }
+
+    function esc(s) {
+      const div = document.createElement('div');
+      div.textContent = String(s || '');
+      return div.innerHTML;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Load on page ready
+    loadPipeline();
+  </script>
+</body>
+</html>

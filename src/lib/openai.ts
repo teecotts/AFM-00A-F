@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import * as fs from "fs";
 import { logger } from "./logger";
+import { extractAudio } from "./audio";
 
 let openaiClient: OpenAI | null = null;
 
@@ -25,23 +26,37 @@ function getOpenAI(): OpenAI {
 export async function transcribeFile(filePath: string): Promise<string> {
   const client = getOpenAI();
 
-  logger.info("Starting Whisper transcription", { filePath });
+  // Extract audio from video files (Whisper has a 25 MB limit)
+  const { audioPath, needsCleanup } = await extractAudio(filePath);
 
-  const fileStream = fs.createReadStream(filePath);
+  try {
+    logger.info("Starting Whisper transcription", { audioPath });
 
-  const response = await client.audio.transcriptions.create({
-    model: "whisper-1",
-    file: fileStream,
-    response_format: "text",
-  });
+    const fileStream = fs.createReadStream(audioPath);
 
-  // response is a string when response_format is "text"
-  const transcript = typeof response === "string" ? response : (response as unknown as string);
+    const response = await client.audio.transcriptions.create({
+      model: "whisper-1",
+      file: fileStream,
+      response_format: "text",
+    });
 
-  logger.info("Transcription complete", {
-    filePath,
-    charCount: transcript.length,
-  });
+    // response is a string when response_format is "text"
+    const transcript = typeof response === "string" ? response : (response as unknown as string);
 
-  return transcript;
+    logger.info("Transcription complete", {
+      filePath,
+      charCount: transcript.length,
+    });
+
+    return transcript;
+  } finally {
+    if (needsCleanup) {
+      try {
+        fs.unlinkSync(audioPath);
+        logger.debug("Cleaned up extracted audio", { audioPath });
+      } catch {
+        logger.warn("Failed to clean up extracted audio", { audioPath });
+      }
+    }
+  }
 }
